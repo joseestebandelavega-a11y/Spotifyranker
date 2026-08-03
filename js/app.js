@@ -116,16 +116,27 @@ function renderPlaylists() {
   list.innerHTML = "";
   selectedPlaylistIds.clear();
   updateImportButton();
+
+  if (state.playlists.length === 0) {
+    const li = document.createElement("li");
+    li.className = "muted";
+    li.textContent =
+      "No playlists found on this Spotify account. Create or follow a playlist, then reload.";
+    list.appendChild(li);
+    return;
+  }
+
   for (const pl of state.playlists) {
     const li = document.createElement("li");
     li.className = "playlist-item";
     const img = pl.images && pl.images.length ? pl.images[0].url : "";
+    const trackCount = pl.tracks && typeof pl.tracks.total === "number" ? pl.tracks.total : "?";
     li.innerHTML = `
       <input type="checkbox" class="playlist-checkbox" />
       <img class="playlist-thumb" src="${img}" alt="" />
       <div class="playlist-info">
-        <div class="playlist-name">${escapeHtml(pl.name)}</div>
-        <div class="playlist-meta">${pl.tracks.total} tracks · by ${escapeHtml((pl.owner && pl.owner.display_name) || "unknown")}</div>
+        <div class="playlist-name">${escapeHtml(pl.name || "Untitled playlist")}</div>
+        <div class="playlist-meta">${trackCount} tracks · by ${escapeHtml((pl.owner && pl.owner.display_name) || "unknown")}</div>
       </div>
     `;
     const checkbox = li.querySelector(".playlist-checkbox");
