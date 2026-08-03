@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Connecting to Spotify…</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="callback-box">
+    <p id="status">Connecting to Spotify…</p>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="js/pkce.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    (async function () {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      const returnedState = params.get("state");
+      const error = params.get("error");
+      const statusEl = document.getElementById("status");
+
+      if (error) {
+        statusEl.textContent = `Spotify login failed: ${error}`;
+        return;
+      }
+
+      const expectedState = sessionStorage.getItem("oauth_state");
+      const verifier = sessionStorage.getItem("pkce_verifier");
+
+      if (!code || !verifier || returnedState !== expectedState) {
+        statusEl.textContent = "Invalid login response. Please go back and try again.";
+        return;
+      }
+
+      sessionStorage.removeItem("oauth_state");
+      sessionStorage.removeItem("pkce_verifier");
+
+      const body = new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: CONFIG.REDIRECT_URI,
+        client_id: CONFIG.CLIENT_ID,
+        code_verifier: verifier,
+      });
+
+      try {
+        const res = await fetch("https://accounts.spotify.com/api/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body,
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        Auth.saveTokens(data);
+        window.location.replace("index.html");
+      } catch (e) {
+        statusEl.textContent = "Token exchange failed. Please try logging in again.";
+        console.error(e);
+      }
+    })();
+  </script>
+</body>
+</html>

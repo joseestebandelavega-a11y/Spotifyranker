@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spotify Swiss Tournament Ranker</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header id="user-header" class="app-header hidden">
+    <div class="app-title">Spotify Swiss Ranker</div>
+    <div class="user-controls">
+      <span id="user-name"></span>
+      <button id="logout-btn" class="link-btn">Log out</button>
+    </div>
+  </header>
+
+  <div id="error-banner" class="error-banner hidden"></div>
+
+  <main>
+    <!-- Login -->
+    <section id="screen-login" class="screen">
+      <div class="centered-box">
+        <h1>Spotify Swiss Tournament Ranker</h1>
+        <p>Import one of your playlists and rank its tracks by playing head-to-head matchups.</p>
+        <button id="login-btn" class="primary-btn">Log in with Spotify</button>
+      </div>
+    </section>
+
+    <!-- Loading -->
+    <section id="screen-loading" class="screen hidden">
+      <div class="centered-box">
+        <div class="spinner"></div>
+        <p id="loading-message">Loading…</p>
+      </div>
+    </section>
+
+    <!-- Playlist picker -->
+    <section id="screen-playlists" class="screen hidden">
+      <h2>Choose a playlist</h2>
+      <ul id="playlist-list" class="playlist-list"></ul>
+    </section>
+
+    <!-- Tournament setup -->
+    <section id="screen-setup" class="screen hidden">
+      <div class="centered-box">
+        <h2 id="setup-playlist-name"></h2>
+        <p><span id="setup-track-count"></span> tracks imported.</p>
+        <label class="rounds-label">
+          Rounds
+          <input type="number" id="setup-rounds" min="1" />
+        </label>
+        <p class="muted small">A reasonable default is pre-filled based on the playlist size.</p>
+        <div class="btn-row">
+          <button id="back-to-playlists-btn" class="secondary-btn">Back</button>
+          <button id="start-tournament-btn" class="primary-btn">Start Tournament</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Head-to-head match -->
+    <section id="screen-match" class="screen hidden">
+      <div class="match-header">
+        <span id="match-round-label"></span>
+        <span id="match-progress-label"></span>
+        <button id="toggle-standings-btn" class="link-btn">Toggle live standings</button>
+      </div>
+      <div id="live-standings-panel" class="standings-panel hidden">
+        <table>
+          <thead><tr><th>#</th><th>Track</th><th>W-L</th></tr></thead>
+          <tbody id="live-standings-body"></tbody>
+        </table>
+      </div>
+      <div id="match-container" class="match-container"></div>
+    </section>
+
+    <!-- Round done -->
+    <section id="screen-round-done" class="screen hidden">
+      <div class="centered-box wide">
+        <h2 id="round-done-label"></h2>
+        <table class="standings-table">
+          <thead><tr><th>#</th><th>Track</th><th>W</th><th>L</th><th>Tiebreak</th></tr></thead>
+          <tbody id="round-done-standings-body"></tbody>
+        </table>
+        <div class="btn-row">
+          <button id="next-round-btn" class="primary-btn">Start Next Round</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final results -->
+    <section id="screen-final" class="screen hidden">
+      <div class="centered-box wide">
+        <h2>Final Rankings — <span id="final-playlist-name"></span></h2>
+        <table class="standings-table">
+          <thead><tr><th>#</th><th>Track</th><th>W</th><th>L</th><th>Tiebreak</th></tr></thead>
+          <tbody id="final-standings-body"></tbody>
+        </table>
+        <div class="btn-row">
+          <button id="copy-json-btn" class="secondary-btn">Copy Ranked List as JSON</button>
+          <button id="start-over-btn" class="secondary-btn">Start Over</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="js/pkce.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/spotify-api.js"></script>
+  <script src="js/swiss.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
