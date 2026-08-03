@@ -32,7 +32,10 @@ const SpotifyAPI = {
       items = items.concat(data.items);
       url = data.next;
     }
-    return items;
+    // The Spotify API can return null entries for playlists that became
+    // unavailable (e.g. deleted or region-restricted), and occasionally
+    // omits fields like `tracks` on malformed entries — skip those.
+    return items.filter((pl) => pl && pl.id && pl.tracks);
   },
 
   async getAllPlaylistTracks(playlistId) {

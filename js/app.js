@@ -125,7 +125,7 @@ function renderPlaylists() {
       <img class="playlist-thumb" src="${img}" alt="" />
       <div class="playlist-info">
         <div class="playlist-name">${escapeHtml(pl.name)}</div>
-        <div class="playlist-meta">${pl.tracks.total} tracks · by ${escapeHtml(pl.owner.display_name || "unknown")}</div>
+        <div class="playlist-meta">${pl.tracks.total} tracks · by ${escapeHtml((pl.owner && pl.owner.display_name) || "unknown")}</div>
       </div>
     `;
     const checkbox = li.querySelector(".playlist-checkbox");
