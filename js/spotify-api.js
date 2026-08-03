@@ -1,5 +1,7 @@
 // Thin wrapper around the Spotify Web API for the calls this app needs.
 
+const LIKED_SONGS_ID = "__liked_songs__";
+
 const SpotifyAPI = {
   async request(path) {
     const token = await Auth.getValidAccessToken();
@@ -13,6 +15,9 @@ const SpotifyAPI = {
     if (res.status === 401) {
       Auth.logout();
       throw new Error("Your session expired. Please log in again.");
+    }
+    if (res.status === 403) {
+      throw new Error("Spotify denied that request — log out and back in to refresh your permissions.");
     }
     if (!res.ok) {
       throw new Error(`Spotify API error (${res.status})`);
@@ -37,19 +42,34 @@ const SpotifyAPI = {
     // ones we can't do anything with. Everything else is kept and rendered
     // defensively, since fields like `tracks` are sometimes missing/partial
     // without the whole entry being unusable.
-    return items.filter((pl) => pl && pl.id);
+    const playlists = items.filter((pl) => pl && pl.id);
+
+    // "Liked Songs" isn't a real playlist — it's the separate Saved Tracks
+    // library — so it never shows up in /me/playlists. Surface it as a
+    // synthetic entry pinned to the top of the list. This can 403 if the
+    // current session predates the user-library-read scope being added
+    // (existing token, not yet re-authorized) — don't let that take down
+    // the whole playlist list, just skip Liked Songs.
+    try {
+      const likedMeta = await this.getLikedSongsMeta();
+      return [likedMeta, ...playlists];
+    } catch (e) {
+      return playlists;
+    }
   },
 
-  async getAllPlaylistTracks(playlistId) {
-    const fields = "next,items(track(id,uri,name,type,is_local,artists(name),album(images)))";
-    let items = [];
-    let url = `/playlists/${playlistId}/tracks?limit=100&fields=${encodeURIComponent(fields)}`;
-    while (url) {
-      const data = await this.request(url);
-      items = items.concat(data.items);
-      url = data.next;
-    }
+  async getLikedSongsMeta() {
+    const data = await this.request("/me/tracks?limit=1");
+    return {
+      id: LIKED_SONGS_ID,
+      name: "Liked Songs",
+      images: [],
+      tracks: { total: data.total },
+      owner: { display_name: "You" },
+    };
+  },
 
+  mapTrackItems(items) {
     const seen = new Set();
     const tracks = [];
     for (const item of items) {
@@ -66,5 +86,32 @@ const SpotifyAPI = {
       });
     }
     return tracks;
+  },
+
+  async getAllPlaylistTracks(playlistId) {
+    if (playlistId === LIKED_SONGS_ID) return this.getAllLikedSongs();
+
+    const fields = "next,items(track(id,uri,name,type,is_local,artists(name),album(images)))";
+    let items = [];
+    let url = `/playlists/${playlistId}/tracks?limit=100&fields=${encodeURIComponent(fields)}`;
+    while (url) {
+      const data = await this.request(url);
+      items = items.concat(data.items);
+      url = data.next;
+    }
+    return this.mapTrackItems(items);
+  },
+
+  async getAllLikedSongs() {
+    // /me/tracks doesn't support the playlist-tracks `fields` filter param,
+    // so this fetches full saved-track objects rather than a trimmed shape.
+    let items = [];
+    let url = "/me/tracks?limit=50";
+    while (url) {
+      const data = await this.request(url);
+      items = items.concat(data.items);
+      url = data.next;
+    }
+    return this.mapTrackItems(items);
   },
 };

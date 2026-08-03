@@ -9,10 +9,12 @@ Pages.
 
 1. **Log in with Spotify** using OAuth Authorization Code + PKCE, entirely
    in the browser (no client secret is ever used or stored).
-2. **Pick one or more playlists** and the app imports their tracks — select
-   several to merge them into a single pool (tracks appearing in more than
-   one selected playlist are only counted once) so you can rank your true
-   favorite across playlists, not just within one.
+2. **Pick one or more playlists** — including your **Liked Songs**, pinned
+   to the top of the list even though it isn't a real playlist — and the
+   app imports their tracks. Select several to merge them into a single
+   pool (tracks appearing in more than one selection are only counted
+   once) so you can rank your true favorite across your whole library, not
+   just within one playlist.
 3. The app runs a **Swiss-style tournament**: each round pairs tracks with
    similar records, avoids repeat matchups where possible, and gives a bye
    to one track when the field is odd. The number of rounds is chosen
@@ -51,12 +53,14 @@ see `config.js`.)
 const CONFIG = {
   CLIENT_ID: "f10ee678f8534eefa83d5984d394ace6",
   REDIRECT_URI: "https://joseestebandelavega-a11y.github.io/Spotifyranker/callback.html",
-  SCOPES: "playlist-read-private playlist-read-collaborative"
+  SCOPES: "playlist-read-private playlist-read-collaborative user-library-read"
 };
 ```
 
 The Client ID is not a secret under PKCE — it's fine for it to live in a
-public repo. If you ever rotate it, just edit this file.
+public repo. If you ever rotate it, just edit this file. `user-library-read`
+is what lets the app see your Liked Songs; if you were logged in before it
+was added, log out and back in once to re-authorize with the new scope.
 
 ### 3. Enable GitHub Pages
 

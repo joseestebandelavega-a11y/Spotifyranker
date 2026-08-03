@@ -131,9 +131,12 @@ function renderPlaylists() {
     li.className = "playlist-item";
     const img = pl.images && pl.images.length ? pl.images[0].url : "";
     const trackCount = pl.tracks && typeof pl.tracks.total === "number" ? pl.tracks.total : "?";
+    const thumbHtml = img
+      ? `<img class="playlist-thumb" src="${img}" alt="" />`
+      : `<div class="playlist-thumb"></div>`;
     li.innerHTML = `
       <input type="checkbox" class="playlist-checkbox" />
-      <img class="playlist-thumb" src="${img}" alt="" />
+      ${thumbHtml}
       <div class="playlist-info">
         <div class="playlist-name">${escapeHtml(pl.name || "Untitled playlist")}</div>
         <div class="playlist-meta">${trackCount} tracks · by ${escapeHtml((pl.owner && pl.owner.display_name) || "unknown")}</div>

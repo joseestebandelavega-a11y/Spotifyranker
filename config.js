@@ -6,5 +6,5 @@
 const CONFIG = {
   CLIENT_ID: "f10ee678f8534eefa83d5984d394ace6",
   REDIRECT_URI: "https://joseestebandelavega-a11y.github.io/Spotifyranker/callback.html",
-  SCOPES: "playlist-read-private playlist-read-collaborative"
+  SCOPES: "playlist-read-private playlist-read-collaborative user-library-read"
 };
