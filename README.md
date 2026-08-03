@@ -71,6 +71,10 @@ playlists, and start ranking.
 
 ## Notes
 
+- All CSS/JS is loaded with a `?v=N` cache-busting query string in
+  `index.html`/`callback.html`, since GitHub Pages doesn't set aggressive
+  no-cache headers and mobile browsers can otherwise keep serving a stale
+  script after a deploy. Bump the `N` whenever you push a JS/CSS change.
 - Requires at least 2 unique tracks across the selected playlist(s). Local
   files and non-track items (e.g. podcast episodes) are skipped on import.
 - Tested up to 5,000 tracks: import, pairing, and the Buchholz tiebreak
