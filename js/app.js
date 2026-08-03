@@ -228,17 +228,60 @@ function escapeHtml(str) {
 function trackCardHtml(side, track) {
   return `
     <div class="track-card">
-      <iframe
-        src="https://open.spotify.com/embed/track/${track.id}?utm_source=generator"
-        width="100%" height="352" frameborder="0"
-        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-        loading="lazy">
-      </iframe>
+      <div id="embed-${side}" class="embed-mount"></div>
       <div class="track-title">${escapeHtml(track.name)}</div>
       <div class="track-artist">${escapeHtml(track.artists)}</div>
       <button class="pick-btn" data-side="${side}">Pick this track</button>
     </div>
   `;
+}
+
+// Spotify IFrame Embed API: gives JS-level playback control (vs. a plain
+// <iframe src="...">), so starting one player can pause the other.
+let spotifyIframeAPI = null;
+let iframeApiReadyResolvers = [];
+
+window.onSpotifyIframeApiReady = (IFrameAPI) => {
+  spotifyIframeAPI = IFrameAPI;
+  iframeApiReadyResolvers.forEach((resolve) => resolve(IFrameAPI));
+  iframeApiReadyResolvers = [];
+};
+
+function waitForIframeApi() {
+  if (spotifyIframeAPI) return Promise.resolve(spotifyIframeAPI);
+  return new Promise((resolve) => iframeApiReadyResolvers.push(resolve));
+}
+
+const matchControllers = { a: null, b: null };
+
+function destroyMatchControllers() {
+  for (const slot of ["a", "b"]) {
+    if (matchControllers[slot]) {
+      matchControllers[slot].destroy();
+      matchControllers[slot] = null;
+    }
+  }
+}
+
+function createEmbed(elementId, uri, slot) {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+  spotifyIframeAPI.createController(element, { uri, width: "100%", height: "352" }, (controller) => {
+    matchControllers[slot] = controller;
+    controller.addListener("playback_update", (e) => {
+      if (!e.data.isPaused) {
+        const other = matchControllers[slot === "a" ? "b" : "a"];
+        if (other) other.pause();
+      }
+    });
+  });
+}
+
+async function mountEmbeds(match) {
+  await waitForIframeApi();
+  destroyMatchControllers();
+  createEmbed("embed-a", match.a.uri, "a");
+  createEmbed("embed-b", match.b.uri, "b");
 }
 
 function renderMatch() {
@@ -265,6 +308,7 @@ function renderMatch() {
 
   const container = document.getElementById("match-container");
   container.innerHTML = trackCardHtml("a", match.a) + trackCardHtml("b", match.b);
+  mountEmbeds(match);
 
   container.querySelectorAll(".pick-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -304,6 +348,7 @@ document.getElementById("toggle-standings-btn").addEventListener("click", () => 
 // ---------- Round done ----------
 
 function renderRoundDone() {
+  destroyMatchControllers();
   const t = state.tournament;
   document.getElementById("round-done-label").textContent =
     `Round ${t.currentRoundNum} of ${t.totalRounds} complete`;
@@ -341,6 +386,7 @@ function renderStandingsTable(tbody) {
 }
 
 function renderFinal() {
+  destroyMatchControllers();
   document.getElementById("final-playlist-name").textContent = state.displayLabel;
   renderStandingsTable(document.getElementById("final-standings-body"));
   showScreen("final");

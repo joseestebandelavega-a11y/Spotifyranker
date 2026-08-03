@@ -180,6 +180,12 @@ main { padding: 24px; max-width: 900px; margin: 0 auto; }
 
 .track-card iframe { border-radius: 12px; }
 
+.embed-mount {
+  min-height: 352px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
 .track-title { font-weight: 700; }
 .track-artist { color: var(--muted); font-size: 0.9rem; }
 
