@@ -13,6 +13,7 @@ class SwissTournament {
     }));
     this.totalRounds = SwissTournament.recommendedRounds(this.players.length);
     this.rounds = [];
+    this.byId = new Map(this.players.map((p) => [p.id, p]));
   }
 
   static recommendedRounds(n) {
@@ -73,6 +74,12 @@ class SwissTournament {
       byePlayer.wins++;
       byePlayer.score++;
       byePlayer.hadBye = true;
+      // The bye player's score just increased by 1, so existing opponents'
+      // Buchholz needs the same +1 propagation a match win would trigger.
+      for (const oppId of byePlayer.opponents) {
+        const opp = this.byId.get(oppId);
+        if (opp) opp.buchholz += 1;
+      }
       matches.push({ a: byePlayer, b: null, bye: true, winnerId: byePlayer.id });
     }
 
@@ -90,29 +97,36 @@ class SwissTournament {
   recordResult(match, winnerId) {
     if (match.bye) return;
     match.winnerId = winnerId;
-    match.a.opponents.add(match.b.id);
-    match.b.opponents.add(match.a.id);
-    if (winnerId === match.a.id) {
-      match.a.wins++;
-      match.a.score++;
-      match.b.losses++;
-    } else {
-      match.b.wins++;
-      match.b.score++;
-      match.a.losses++;
-    }
-    this.recalculateBuchholz();
-  }
 
-  recalculateBuchholz() {
-    const byId = new Map(this.players.map((p) => [p.id, p]));
-    for (const p of this.players) {
-      let sum = 0;
-      for (const oppId of p.opponents) {
-        const opp = byId.get(oppId);
-        if (opp) sum += opp.score;
-      }
-      p.buchholz = sum;
+    const a = match.a;
+    const b = match.b;
+
+    // Buchholz sums each *unique* opponent's current score. On a first
+    // meeting, credit each side with the other's pre-match score up front
+    // (a forced rematch, from the pairing fallback, is a no-op here since
+    // the opponents set already has the id and shouldn't be double-counted).
+    const firstMeeting = !a.opponents.has(b.id);
+    a.opponents.add(b.id);
+    b.opponents.add(a.id);
+    if (firstMeeting) {
+      a.buchholz += b.score;
+      b.buchholz += a.score;
+    }
+
+    const winner = winnerId === a.id ? a : b;
+    const loser = winner === a ? b : a;
+    winner.wins++;
+    winner.score++;
+    loser.losses++;
+
+    // The winner's score just increased by 1, so every player who already
+    // has the winner as an opponent (including the one just added above)
+    // needs their Buchholz bumped by 1 to track the winner's new total —
+    // that set is exactly winner.opponents, bounded by rounds played, not
+    // the full field size.
+    for (const oppId of winner.opponents) {
+      const opp = this.byId.get(oppId);
+      if (opp) opp.buchholz += 1;
     }
   }
 
@@ -142,12 +156,12 @@ class SwissTournament {
     const t = Object.create(SwissTournament.prototype);
     t.players = data.players.map((p) => ({ ...p, opponents: new Set(p.opponents) }));
     t.totalRounds = data.totalRounds;
-    const byId = new Map(t.players.map((p) => [p.id, p]));
+    t.byId = new Map(t.players.map((p) => [p.id, p]));
     t.rounds = data.rounds.map((r) => ({
       number: r.number,
       matches: r.matches.map((m) => ({
-        a: byId.get(m.aId),
-        b: m.bId ? byId.get(m.bId) : null,
+        a: t.byId.get(m.aId),
+        b: m.bId ? t.byId.get(m.bId) : null,
         bye: m.bye,
         winnerId: m.winnerId,
       })),

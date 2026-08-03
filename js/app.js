@@ -5,10 +5,20 @@ const TOURNAMENT_STORAGE_KEY = "spotify_swiss_tournament";
 const state = {
   user: null,
   playlists: [],
-  selectedPlaylist: null,
+  selectedPlaylists: [],
+  displayLabel: "",
   tracks: [],
   tournament: null,
 };
+
+const selectedPlaylistIds = new Set();
+
+function computeDisplayLabel(playlists) {
+  const names = playlists.map((p) => p.name);
+  if (names.length <= 1) return names[0] || "";
+  if (names.length <= 3) return names.join(" + ");
+  return `${names.length} playlists merged`;
+}
 
 const screens = {
   login: document.getElementById("screen-login"),
@@ -44,7 +54,7 @@ function saveTournamentState() {
   localStorage.setItem(
     TOURNAMENT_STORAGE_KEY,
     JSON.stringify({
-      playlistName: state.selectedPlaylist ? state.selectedPlaylist.name : "",
+      selectionLabel: state.displayLabel,
       tournament: state.tournament.toJSON(),
     })
   );
@@ -59,7 +69,7 @@ function loadTournamentState() {
   if (!raw) return null;
   try {
     const data = JSON.parse(raw);
-    return { playlistName: data.playlistName, tournament: SwissTournament.fromJSON(data.tournament) };
+    return { selectionLabel: data.selectionLabel, tournament: SwissTournament.fromJSON(data.tournament) };
   } catch (e) {
     return null;
   }
@@ -104,29 +114,59 @@ async function loadPlaylists() {
 function renderPlaylists() {
   const list = document.getElementById("playlist-list");
   list.innerHTML = "";
+  selectedPlaylistIds.clear();
+  updateImportButton();
   for (const pl of state.playlists) {
     const li = document.createElement("li");
     li.className = "playlist-item";
     const img = pl.images && pl.images.length ? pl.images[0].url : "";
     li.innerHTML = `
+      <input type="checkbox" class="playlist-checkbox" />
       <img class="playlist-thumb" src="${img}" alt="" />
       <div class="playlist-info">
         <div class="playlist-name">${escapeHtml(pl.name)}</div>
         <div class="playlist-meta">${pl.tracks.total} tracks · by ${escapeHtml(pl.owner.display_name || "unknown")}</div>
       </div>
     `;
-    li.addEventListener("click", () => selectPlaylist(pl));
+    const checkbox = li.querySelector(".playlist-checkbox");
+    li.addEventListener("click", (e) => {
+      if (e.target !== checkbox) checkbox.checked = !checkbox.checked;
+      if (checkbox.checked) selectedPlaylistIds.add(pl.id);
+      else selectedPlaylistIds.delete(pl.id);
+      updateImportButton();
+    });
     list.appendChild(li);
   }
 }
 
-async function selectPlaylist(playlist) {
-  showLoading(`Importing "${playlist.name}"…`);
+function updateImportButton() {
+  const btn = document.getElementById("import-selected-btn");
+  btn.textContent = `Import Selected (${selectedPlaylistIds.size})`;
+  btn.disabled = selectedPlaylistIds.size === 0;
+}
+
+document.getElementById("import-selected-btn").addEventListener("click", () => {
+  const chosen = state.playlists.filter((p) => selectedPlaylistIds.has(p.id));
+  selectPlaylists(chosen);
+});
+
+async function selectPlaylists(playlists) {
   try {
-    state.selectedPlaylist = playlist;
-    state.tracks = await SpotifyAPI.getAllPlaylistTracks(playlist.id);
+    state.selectedPlaylists = playlists;
+    const merged = new Map();
+    for (let i = 0; i < playlists.length; i++) {
+      showLoading(
+        playlists.length > 1
+          ? `Importing "${playlists[i].name}" (${i + 1} of ${playlists.length})…`
+          : `Importing "${playlists[i].name}"…`
+      );
+      const tracks = await SpotifyAPI.getAllPlaylistTracks(playlists[i].id);
+      for (const t of tracks) merged.set(t.id, t);
+    }
+    state.tracks = [...merged.values()];
+    state.displayLabel = computeDisplayLabel(playlists);
     if (state.tracks.length < 2) {
-      showError("This playlist needs at least 2 tracks.");
+      showError("Need at least 2 unique tracks across the selected playlists.");
       showScreen("playlists");
       return;
     }
@@ -139,7 +179,7 @@ async function selectPlaylist(playlist) {
 }
 
 function renderSetup() {
-  document.getElementById("setup-playlist-name").textContent = state.selectedPlaylist.name;
+  document.getElementById("setup-playlist-name").textContent = state.displayLabel;
   document.getElementById("setup-track-count").textContent = state.tracks.length;
   const recommended = SwissTournament.recommendedRounds(state.tracks.length);
   const roundsInput = document.getElementById("setup-rounds");
@@ -221,7 +261,9 @@ function renderMatch() {
     });
   });
 
-  renderLiveStandings();
+  if (!document.getElementById("live-standings-panel").classList.contains("hidden")) {
+    renderLiveStandings();
+  }
   showScreen("match");
 }
 
@@ -240,7 +282,9 @@ function renderLiveStandings() {
 }
 
 document.getElementById("toggle-standings-btn").addEventListener("click", () => {
-  document.getElementById("live-standings-panel").classList.toggle("hidden");
+  const panel = document.getElementById("live-standings-panel");
+  panel.classList.toggle("hidden");
+  if (!panel.classList.contains("hidden")) renderLiveStandings();
 });
 
 // ---------- Round done ----------
@@ -283,7 +327,7 @@ function renderStandingsTable(tbody) {
 }
 
 function renderFinal() {
-  document.getElementById("final-playlist-name").textContent = state.selectedPlaylist.name;
+  document.getElementById("final-playlist-name").textContent = state.displayLabel;
   renderStandingsTable(document.getElementById("final-standings-body"));
   showScreen("final");
 }
@@ -309,7 +353,8 @@ document.getElementById("copy-json-btn").addEventListener("click", async () => {
 document.getElementById("start-over-btn").addEventListener("click", () => {
   clearTournamentState();
   state.tournament = null;
-  state.selectedPlaylist = null;
+  state.selectedPlaylists = [];
+  state.displayLabel = "";
   state.tracks = [];
   showScreen("playlists");
 });
@@ -325,7 +370,7 @@ document.getElementById("start-over-btn").addEventListener("click", () => {
   const saved = loadTournamentState();
   if (saved) {
     state.tournament = saved.tournament;
-    state.selectedPlaylist = { name: saved.playlistName };
+    state.displayLabel = saved.selectionLabel;
   }
 
   await loadPlaylists();

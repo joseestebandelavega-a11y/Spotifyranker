@@ -22,7 +22,7 @@
     <section id="screen-login" class="screen">
       <div class="centered-box">
         <h1>Spotify Swiss Tournament Ranker</h1>
-        <p>Import one of your playlists and rank its tracks by playing head-to-head matchups.</p>
+        <p>Import one or more of your playlists — merge several to find your true #1 — and rank tracks by playing head-to-head matchups.</p>
         <button id="login-btn" class="primary-btn">Log in with Spotify</button>
       </div>
     </section>
@@ -37,8 +37,12 @@
 
     <!-- Playlist picker -->
     <section id="screen-playlists" class="screen hidden">
-      <h2>Choose a playlist</h2>
+      <h2>Choose one or more playlists</h2>
+      <p class="muted small">Select multiple to merge them into one pool — tracks that appear in more than one are only counted once.</p>
       <ul id="playlist-list" class="playlist-list"></ul>
+      <div class="btn-row">
+        <button id="import-selected-btn" class="primary-btn" disabled>Import Selected (0)</button>
+      </div>
     </section>
 
     <!-- Tournament setup -->

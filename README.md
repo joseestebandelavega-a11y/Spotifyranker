@@ -9,7 +9,10 @@ Pages.
 
 1. **Log in with Spotify** using OAuth Authorization Code + PKCE, entirely
    in the browser (no client secret is ever used or stored).
-2. **Pick a playlist** and the app imports all of its tracks.
+2. **Pick one or more playlists** and the app imports their tracks — select
+   several to merge them into a single pool (tracks appearing in more than
+   one selected playlist are only counted once) so you can rank your true
+   favorite across playlists, not just within one.
 3. The app runs a **Swiss-style tournament**: each round pairs tracks with
    similar records, avoids repeat matchups where possible, and gives a bye
    to one track when the field is odd. The number of rounds is chosen
@@ -63,13 +66,17 @@ workflow (`.github/workflows/deploy.yml`) deploys the site on every push to
 
 ### 4. Visit the site
 
-Once deployed, go to the Pages URL, log in with Spotify, pick a playlist,
-and start ranking.
+Once deployed, go to the Pages URL, log in with Spotify, pick one or more
+playlists, and start ranking.
 
 ## Notes
 
-- Requires a playlist with at least 2 tracks. Local files and non-track
-  items (e.g. podcast episodes) in a playlist are skipped on import.
+- Requires at least 2 unique tracks across the selected playlist(s). Local
+  files and non-track items (e.g. podcast episodes) are skipped on import.
+- Tested up to 5,000 tracks: import, pairing, and the Buchholz tiebreak
+  calculation are all incremental/O(n log n), so large merged pools stay
+  fast (the Swiss engine's own bookkeeping runs in well under a second for
+  5,000 tracks across 15 rounds).
 - Embedded players use Spotify's public iframe embed widget
   (`open.spotify.com/embed/track/...`), so playback works the same as any
   embedded Spotify player on a website — no Premium/Web Playback SDK

@@ -112,6 +112,14 @@ main { padding: 24px; max-width: 900px; margin: 0 auto; }
 }
 .playlist-item:hover { background: var(--surface-2); }
 
+.playlist-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 .playlist-thumb {
   width: 56px;
   height: 56px;
